@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="IsraelAirlines.core/IsraelAirlines.core.csproj" />
+  <Project Path="IsraelAirlines.data/IsraelAirlines.data.csproj" />
+  <Project Path="IsraelAirlines.service/IsraelAirlines.service.csproj" />
+  <Project Path="IsraelAirlines.Tests/IsraelAirlines.Tests.csproj" />
+  <Project Path="IsraelAirlines/IsraelAirlines.api.csproj" />
+</Solution>
