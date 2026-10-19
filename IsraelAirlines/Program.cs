@@ -67,7 +67,6 @@ Console.WriteLine($"Host: {new Npgsql.NpgsqlConnectionStringBuilder(connectionSt
 Console.WriteLine($"Database: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Database}");
 Console.WriteLine($"Username: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Username}");
 var csb = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-Console.WriteLine($"Password length: {csb.Password.Length} + {csb.Password}");
 Console.WriteLine($"Password provided: {!string.IsNullOrEmpty(csb.Password)}");
 using (var connection = new Npgsql.NpgsqlConnection(connectionString))
 {
