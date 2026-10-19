@@ -43,11 +43,6 @@ namespace IsraelAirlines.data.Migrations
                 keyValue: 2);
 
             migrationBuilder.DeleteData(
-                table: "Reservations",
-                keyColumn: "Id",
-                keyValue: 1);
-
-            migrationBuilder.DeleteData(
                 table: "Aircrafts",
                 keyColumn: "Id",
                 keyValue: 2);

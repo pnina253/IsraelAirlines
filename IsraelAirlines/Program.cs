@@ -82,9 +82,12 @@ builder.Host.UseNLog(new NLogAspNetCoreOptions
 //        Console.WriteLine($"PostgreSQL connection failed: {ex.Message}");
 //    }
 //}
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' is missing.");
+
 builder.Services.AddDbContext<DataContext>(options =>
-    options.UseNpgsql(
-    builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 builder.Services.AddAutoMapper(c =>
 {
     c.AddProfile<MappingProfile>();
@@ -126,8 +129,14 @@ builder.Services.AddOpenApi();
 
 
 var app = builder.Build();
-using (var scope = app.Services.CreateScope())
+
+var dbInfo = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+app.Logger.LogInformation(
+    "Using database {Database} on host {Host}", dbInfo.Database, dbInfo.Host);
+
+if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     await db.Database.MigrateAsync();
 }
