@@ -6,7 +6,7 @@ COPY . .
 
 RUN dotnet restore "./IsraelAirlines/IsraelAirlines.api.csproj"
 RUN dotnet publish "./IsraelAirlines/IsraelAirlines.api.csproj" -c Release -o /app/publish --no-restore
-restore
+
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
