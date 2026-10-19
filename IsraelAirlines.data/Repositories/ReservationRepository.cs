@@ -1,7 +1,9 @@
 ﻿using IsraelAirlines.core.Entities;
+using IsraelAirlines.core.Exceptions;
 using IsraelAirlines.core.Interfaces.Repository;
 using IsraelAirlines.data.Contex;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -55,6 +57,7 @@ namespace IsraelAirlines.data.Repositories
                     cancellationToken);
         }
 
+
         public async Task AddAsync(
             Reservation reservation,
             CancellationToken cancellationToken = default)
@@ -62,8 +65,23 @@ namespace IsraelAirlines.data.Repositories
             await _context.Reservations.AddAsync(
                 reservation, cancellationToken);
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception)
+                when (exception.InnerException is PostgresException
+                {
+                    SqlState: PostgresErrorCodes.UniqueViolation
+                } postgresException
+                && postgresException.ConstraintName ==
+                    "IX_Reservations_FlightId_SeatNumber")
+            {
+                throw new ConflictException(
+                    "This seat is already reserved for the selected flight.");
+            }
         }
+
 
         public async Task<IReadOnlyList<Reservation>> GetAllAsync(
             CancellationToken cancellationToken)

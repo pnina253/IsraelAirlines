@@ -16,5 +16,6 @@ namespace IsraelAirlines.core.Entities
         public User User { get; set; } = null!;
 
         public Flight Flight { get; set; } = null!;
+        public Guid Version { get; set; } = Guid.NewGuid();
     }
 }

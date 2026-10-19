@@ -49,6 +49,22 @@ namespace IsraelAirlines.data.Migrations
                         .IsUnique();
 
                     b.ToTable("Aircrafts");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            IsActive = true,
+                            Model = "Boeing 737",
+                            RegistrationNumber = "4X-AAA"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            IsActive = true,
+                            Model = "Airbus A320",
+                            RegistrationNumber = "4X-BBB"
+                        });
                 });
 
             modelBuilder.Entity("IsraelAirlines.core.Entities.Flight", b =>
@@ -91,6 +107,30 @@ namespace IsraelAirlines.data.Migrations
                     b.HasIndex("AircraftId");
 
                     b.ToTable("Flights");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AircraftId = 1,
+                            ArrivalTime = new DateTime(2027, 1, 10, 13, 0, 0, 0, DateTimeKind.Utc),
+                            DepartureTime = new DateTime(2027, 1, 10, 8, 0, 0, 0, DateTimeKind.Utc),
+                            Destination = "London",
+                            DurationMinutes = 300,
+                            FlightNumber = "IA101",
+                            Origin = "Tel Aviv"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            AircraftId = 2,
+                            ArrivalTime = new DateTime(2027, 1, 11, 14, 30, 0, 0, DateTimeKind.Utc),
+                            DepartureTime = new DateTime(2027, 1, 11, 9, 0, 0, 0, DateTimeKind.Utc),
+                            Destination = "Paris",
+                            DurationMinutes = 330,
+                            FlightNumber = "IA202",
+                            Origin = "Tel Aviv"
+                        });
                 });
 
             modelBuilder.Entity("IsraelAirlines.core.Entities.Reservation", b =>
@@ -114,6 +154,10 @@ namespace IsraelAirlines.data.Migrations
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 

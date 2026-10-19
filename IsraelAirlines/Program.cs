@@ -1,3 +1,4 @@
+using IsraelAirlines.api.Initialization;
 using IsraelAirlines.API.Middlewares;
 using IsraelAirlines.core.Configuration;
 using IsraelAirlines.core.Entities;
@@ -13,11 +14,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using NLog.Web;
 using System.Text;
-using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("secret.js", optional: true);
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("JwtSettings"));
 var jwtSettings = builder.Configuration
@@ -60,26 +62,26 @@ builder.Host.UseNLog(new NLogAspNetCoreOptions
 {
     IncludeScopes = true
 });
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-Console.WriteLine($"Connection string found: {connectionString != null}");
-Console.WriteLine($"Host: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Host}");
-Console.WriteLine($"Database: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Database}");
-Console.WriteLine($"Username: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Username}");
-var csb = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-Console.WriteLine($"Password provided: {!string.IsNullOrEmpty(csb.Password)}");
-using (var connection = new Npgsql.NpgsqlConnection(connectionString))
-{
-    try
-    {
-        connection.Open();
-        Console.WriteLine("PostgreSQL connection successful");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"PostgreSQL connection failed: {ex.Message}");
-    }
-}
+//Console.WriteLine($"Connection string found: {connectionString != null}");
+//Console.WriteLine($"Host: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Host}");
+//Console.WriteLine($"Database: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Database}");
+//Console.WriteLine($"Username: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Username}");
+//var csb = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+//Console.WriteLine($"Password provided: {!string.IsNullOrEmpty(csb.Password)}");
+//using (var connection = new Npgsql.NpgsqlConnection(connectionString))
+//{
+//    try
+//    {
+//        connection.Open();
+//        Console.WriteLine("PostgreSQL connection successful");
+//    }
+//    catch (Exception ex)
+//    {
+//        Console.WriteLine($"PostgreSQL connection failed: {ex.Message}");
+//    }
+//}
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseNpgsql(
     builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -124,7 +126,12 @@ builder.Services.AddOpenApi();
 
 
 var app = builder.Build();
-
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DataContext>();
+    await db.Database.MigrateAsync();
+}
+await DatabaseSeeder.SeedAsync(app.Services);
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
 

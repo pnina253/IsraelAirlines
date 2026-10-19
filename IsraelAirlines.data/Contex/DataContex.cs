@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
 
 namespace IsraelAirlines.data.Contex
 {
@@ -17,6 +21,31 @@ namespace IsraelAirlines.data.Contex
         public DbSet<Aircraft> Aircrafts => Set<Aircraft>();
         public DbSet<Flight> Flights => Set<Flight>();
         public DbSet<Reservation> Reservations => Set<Reservation>();
+
+        public override int SaveChanges()
+        {
+            UpdateReservationVersions();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            UpdateReservationVersions();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void UpdateReservationVersions()
+        {
+            var entries = ChangeTracker
+                .Entries<Reservation>()
+                .Where(e => e.State == EntityState.Modified);
+
+            foreach (var entry in entries)
+            {
+                entry.Entity.Version = Guid.NewGuid();
+            }
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -99,7 +128,54 @@ namespace IsraelAirlines.data.Contex
                     .WithMany(u => u.Reservations)
                     .HasForeignKey(r => r.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.Property(r => r.Version)
+                .IsConcurrencyToken();
             });
+
+
+            modelBuilder.Entity<Aircraft>().HasData(
+                new Aircraft
+                {
+                    Id = 1,
+                    Model = "Boeing 737",
+                    RegistrationNumber = "4X-AAA",
+                    IsActive = true
+                },
+                new Aircraft
+                {
+                    Id = 2,
+                    Model = "Airbus A320",
+                    RegistrationNumber = "4X-BBB",
+                    IsActive = true
+                }
+            );
+
+            modelBuilder.Entity<Flight>().HasData(
+                new Flight
+                {
+                    Id = 1,
+                    FlightNumber = "IA101",
+                    AircraftId = 1,
+                    Origin = "Tel Aviv",
+                    Destination = "London",
+                    DepartureTime = new DateTime(2027, 1, 10, 8, 0, 0, DateTimeKind.Utc),
+                    ArrivalTime = new DateTime(2027, 1, 10, 13, 0, 0, DateTimeKind.Utc),
+                    DurationMinutes = 300
+                },
+                new Flight
+                {
+                    Id = 2,
+                    FlightNumber = "IA202",
+                    AircraftId = 2,
+                    Origin = "Tel Aviv",
+                    Destination = "Paris",
+                    DepartureTime = new DateTime(2027, 1, 11, 9, 0, 0, DateTimeKind.Utc),
+                    ArrivalTime = new DateTime(2027, 1, 11, 14, 30, 0, DateTimeKind.Utc),
+                    DurationMinutes = 330
+                }
+            );
+
+
         }
     }
 }
