@@ -1,5 +1,7 @@
 ﻿using IsraelAirlines.core.Exceptions;
-using System.Net;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Authentication;
 using System.Text.Json;
 
@@ -36,31 +38,32 @@ public class GlobalExceptionMiddleware
                 throw;
             }
 
-            context.Response.ContentType = "application/json";
-
-            context.Response.StatusCode = exception switch
+            var statusCode = exception switch
             {
-                NotFoundException => (int)HttpStatusCode.NotFound,
-                ConflictException => (int)HttpStatusCode.Conflict,
-                AuthenticationException => (int)HttpStatusCode.Unauthorized,
-                ArgumentException => (int)HttpStatusCode.BadRequest,
+                BadRequestException => StatusCodes.Status400BadRequest,
+                AuthenticationException => StatusCodes.Status401Unauthorized,
+                ForbiddenException => StatusCodes.Status403Forbidden,
+                NotFoundException => StatusCodes.Status404NotFound,
+                ConflictException => StatusCodes.Status409Conflict,
+                DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
 
-                _ => (int)HttpStatusCode.InternalServerError
+                _ => StatusCodes.Status500InternalServerError
             };
 
-            var message = context.Response.StatusCode ==
-                          (int)HttpStatusCode.InternalServerError
-                ? "An unexpected error occurred."
-                : exception.Message;
-
-            var response = new
+            var problem = new ProblemDetails
             {
-                statusCode = context.Response.StatusCode,
-                message
+                Status = statusCode,
+                Title = ReasonPhrases.GetReasonPhrase(statusCode),
+                Detail = statusCode == StatusCodes.Status500InternalServerError
+                    ? "An unexpected error occurred."
+                    : exception.Message,
+                Instance = context.Request.Path
             };
+            problem.Extensions["correlationId"] = context.TraceIdentifier;
 
-            await context.Response.WriteAsync(
-                JsonSerializer.Serialize(response));
+            context.Response.StatusCode = statusCode;
+            await context.Response.WriteAsJsonAsync(
+                problem, (JsonSerializerOptions?)null, "application/problem+json");
         }
     }
 }

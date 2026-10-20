@@ -1,4 +1,5 @@
 ﻿
+using IsraelAirlines.core.Constants;
 using IsraelAirlines.core.Entities;
 using IsraelAirlines.data.Contex;
 using Microsoft.EntityFrameworkCore;
@@ -69,7 +70,7 @@ public class DatabaseConnectionTests
                     FullName = "Concurrency Test",
                     Email = $"concurrency-{Guid.NewGuid():N}@test.com",
                     PasswordHash = "test-hash",
-                    Role = "User"
+                    Role = Roles.User
                 };
 
                 setup.Users.Add(user);

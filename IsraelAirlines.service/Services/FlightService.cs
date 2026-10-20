@@ -1,4 +1,4 @@
-﻿
+
 using AutoMapper;
 using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.DTOs.Responses;
@@ -13,15 +13,18 @@ public class FlightService : IFlightService
 {
     private readonly IFlightRepository _flightRepository;
     private readonly IAircraftRepository _aircraftRepository;
+    private readonly IReservationRepository _reservationRepository;
     private readonly IMapper _mapper;
 
     public FlightService(
         IFlightRepository flightRepository,
         IAircraftRepository aircraftRepository,
+        IReservationRepository reservationRepository,
         IMapper mapper)
     {
         _flightRepository = flightRepository;
         _aircraftRepository = aircraftRepository;
+        _reservationRepository = reservationRepository;
         _mapper = mapper;
     }
 
@@ -37,15 +40,40 @@ public class FlightService : IFlightService
        return _mapper.Map<FlightResponse>(flight);
     }
 
-    public async Task<IReadOnlyList<FlightResponse>> SearchAsync(
-        string? origin,
-        string? destination,
+    public async Task<PagedResult<FlightResponse>> SearchAsync(
+        FlightSearchQuery query,
         CancellationToken cancellationToken = default)
     {
-        var flights = await _flightRepository.SearchAsync(
-            origin, destination, cancellationToken);
+        if (query.FromDate is { } from && query.ToDate is { } to && from > to)
+        {
+            throw new BadRequestException(
+                "From date must not be after to date.");
+        }
 
-        return _mapper.Map<IReadOnlyList<FlightResponse>>(flights);
+        var (flights, totalCount) = await _flightRepository.SearchAsync(
+            query, cancellationToken);
+
+        return new PagedResult<FlightResponse>
+        {
+            Items = _mapper.Map<IReadOnlyList<FlightResponse>>(flights),
+            Page = query.Page,
+            PageSize = query.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    public async Task<IReadOnlyList<string>?> GetReservedSeatsAsync(
+        int flightId,
+        CancellationToken cancellationToken = default)
+    {
+        var flight = await _flightRepository.GetByIdAsync(
+            flightId, cancellationToken);
+
+        if (flight is null)
+            return null;
+
+        return await _reservationRepository.GetReservedSeatsAsync(
+            flightId, cancellationToken);
     }
 
     public async Task<FlightResponse> CreateAsync(
@@ -54,8 +82,36 @@ public class FlightService : IFlightService
     {
         if (request.DurationMinutes <= 0) 
         {
-            throw new ArgumentException(
+            throw new BadRequestException(
                 "Duration minutes must be a positive number");
+        }
+
+        var departure = NormalizeToUtc(request.DepartureTime!.Value);
+
+        if (departure <= DateTime.UtcNow)
+        {
+            throw new BadRequestException(
+                "Departure time must be in the future.");
+        }
+
+        var origin = request.Origin.Trim();
+        var destination = request.Destination.Trim();
+
+        if (string.Equals(origin, destination, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException(
+                "Origin and destination must differ.");
+        }
+
+        var flightNumber = request.FlightNumber.Trim();
+
+        var existingFlight = await _flightRepository.GetByFlightNumberAsync(
+            flightNumber, cancellationToken);
+
+        if (existingFlight is not null)
+        {
+            throw new ConflictException(
+                "A flight with this number already exists.");
         }
 
         var aircraft = await _aircraftRepository.GetByRegistrationNumberAsync(
@@ -69,19 +125,20 @@ public class FlightService : IFlightService
 
         if (!aircraft.IsActive)
         {
-            throw new ArgumentException(
+            throw new BadRequestException(
                 "The specified aircraft is not active.");
         }
 
         var flight = new Flight
         {
-            FlightNumber = request.FlightNumber.Trim(),
-            Origin = request.Origin.Trim(),
-            Destination = request.Destination.Trim(),
-            DepartureTime = request.DeparetureTime,
+            FlightNumber = flightNumber,
+            Origin = origin,
+            Destination = destination,
+            DepartureTime = departure,
             DurationMinutes = request.DurationMinutes,
             AircraftId = aircraft.Id,
-            ArrivalTime = request.DeparetureTime.AddMinutes(request.DurationMinutes),
+            ArrivalTime = departure.AddMinutes(request.DurationMinutes),
+            Price = request.Price!.Value,
             Aircraft = aircraft
         };
 
@@ -90,5 +147,11 @@ public class FlightService : IFlightService
         return _mapper.Map<FlightResponse>(flight);
     }
 
-    
+    // Npgsql rejects non-UTC values for timestamptz; a time without an offset is treated as UTC.
+    private static DateTime NormalizeToUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
 }

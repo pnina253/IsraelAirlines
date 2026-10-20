@@ -1,4 +1,4 @@
-﻿using IsraelAirlines.core.Entities;
+using IsraelAirlines.core.Entities;
 using IsraelAirlines.core.Exceptions;
 using IsraelAirlines.core.Interfaces.Repository;
 using IsraelAirlines.data.Contex;
@@ -57,6 +57,17 @@ namespace IsraelAirlines.data.Repositories
                     cancellationToken);
         }
 
+        public async Task<IReadOnlyList<string>> GetReservedSeatsAsync(
+            int flightId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _context.Reservations
+                .AsNoTracking()
+                .Where(r => r.FlightId == flightId)
+                .OrderBy(r => r.SeatNumber)
+                .Select(r => r.SeatNumber)
+                .ToListAsync(cancellationToken);
+        }
 
         public async Task AddAsync(
             Reservation reservation,
@@ -79,6 +90,15 @@ namespace IsraelAirlines.data.Repositories
             {
                 throw new ConflictException(
                     "This seat is already reserved for the selected flight.");
+            }
+            catch (DbUpdateException exception)
+                when (exception.InnerException is PostgresException
+                {
+                    SqlState: PostgresErrorCodes.ForeignKeyViolation
+                })
+            {
+                throw new NotFoundException(
+                    "The user or flight no longer exists.");
             }
         }
 

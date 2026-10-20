@@ -1,5 +1,6 @@
-﻿
+
 using AutoMapper;
+using IsraelAirlines.core.Constants;
 using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.DTOs.Responses;
 using IsraelAirlines.core.Entities;
@@ -59,6 +60,7 @@ public class ReservationService : IReservationService
     }
 
     public async Task<ReservationResponse> CreateAsync(
+        int userId,
         ReservationRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -72,6 +74,12 @@ public class ReservationService : IReservationService
         }
 
         var seatNumber = request.SeatNumber.Trim().ToUpperInvariant();
+
+        if (!SeatMap.IsValidSeat(flight.Aircraft, seatNumber))
+        {
+            throw new BadRequestException(
+                "The specified seat does not exist on this aircraft.");
+        }
 
         var seatIsReserved =
             await _reservationRepository.IsSeatReservedAsync(
@@ -87,6 +95,7 @@ public class ReservationService : IReservationService
 
         var reservation = new Reservation
         {
+            UserId = userId,
             FlightId = flight.Id,
             Flight = flight,
             SeatNumber = seatNumber,

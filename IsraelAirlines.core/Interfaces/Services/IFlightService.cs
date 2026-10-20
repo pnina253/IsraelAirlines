@@ -1,4 +1,4 @@
-﻿using IsraelAirlines.core.DTOs.Requests;
+using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.DTOs.Responses;
 using System;
 using System.Collections.Generic;
@@ -12,9 +12,13 @@ namespace IsraelAirlines.core.Interfaces.Services
             int id,
             CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyList<FlightResponse>> SearchAsync(
-            string? origin,
-            string? destination,
+        Task<PagedResult<FlightResponse>> SearchAsync(
+            FlightSearchQuery query,
+            CancellationToken cancellationToken = default);
+
+        // Returns null when the flight does not exist.
+        Task<IReadOnlyList<string>?> GetReservedSeatsAsync(
+            int flightId,
             CancellationToken cancellationToken = default);
 
         Task<FlightResponse> CreateAsync(

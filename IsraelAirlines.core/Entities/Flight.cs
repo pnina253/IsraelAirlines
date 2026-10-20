@@ -1,4 +1,3 @@
-﻿using IsraelAirlines.core.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -14,7 +13,7 @@ namespace IsraelAirlines.core.Entities
         // מספר הטיסה
 
         public int AircraftId {  get; set; }
-        public Aircraft Aircraft { get; set; } = null;
+        public Aircraft Aircraft { get; set; } = null!;
         // אובייקט המטוס שמבצע את הטיסה
       
 
@@ -31,6 +30,9 @@ namespace IsraelAirlines.core.Entities
         // מועד הנחיתה המתוכנן - מחושב על פי זמן הטיסה בדקות (שדה חישובי)
 
         public int DurationMinutes { get; set; }
+
+        public decimal Price { get; set; }
+        // מחיר כרטיס בשקלים
 
 
         public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();

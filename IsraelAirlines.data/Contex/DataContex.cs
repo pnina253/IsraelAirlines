@@ -1,4 +1,4 @@
-﻿using IsraelAirlines.core.Entities;
+using IsraelAirlines.core.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -85,6 +85,10 @@ namespace IsraelAirlines.data.Contex
                 entity.HasIndex(a => a.RegistrationNumber)
                     .IsUnique();
 
+                entity.Property(a => a.SeatLayout)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
                 entity.HasMany(a => a.Flights)
                     .WithOne(f => f.Aircraft)
                     .HasForeignKey(f => f.AircraftId)
@@ -99,6 +103,9 @@ namespace IsraelAirlines.data.Contex
                     .IsRequired()
                     .HasMaxLength(20);
 
+                entity.HasIndex(f => f.FlightNumber)
+                    .IsUnique();
+
                 entity.Property(f => f.Origin)
                     .IsRequired()
                     .HasMaxLength(100);
@@ -106,6 +113,9 @@ namespace IsraelAirlines.data.Contex
                 entity.Property(f => f.Destination)
                     .IsRequired()
                     .HasMaxLength(100);
+
+                entity.Property(f => f.Price)
+                    .HasPrecision(10, 2);
 
                 entity.HasMany(f => f.Reservations)
                     .WithOne(r => r.Flight)
@@ -139,14 +149,20 @@ namespace IsraelAirlines.data.Contex
                     Id = 1,
                     Model = "Boeing 737",
                     RegistrationNumber = "4X-AAA",
-                    IsActive = true
+                    IsActive = true,
+                    Rows = 30,
+                    SeatLayout = "ABC DEF",
+                    BusinessRows = 3
                 },
                 new Aircraft
                 {
                     Id = 2,
                     Model = "Airbus A320",
                     RegistrationNumber = "4X-BBB",
-                    IsActive = true
+                    IsActive = true,
+                    Rows = 30,
+                    SeatLayout = "ABC DEF",
+                    BusinessRows = 3
                 }
             );
 
@@ -160,7 +176,8 @@ namespace IsraelAirlines.data.Contex
                     Destination = "London",
                     DepartureTime = new DateTime(2027, 1, 10, 8, 0, 0, DateTimeKind.Utc),
                     ArrivalTime = new DateTime(2027, 1, 10, 13, 0, 0, DateTimeKind.Utc),
-                    DurationMinutes = 300
+                    DurationMinutes = 300,
+                    Price = 1250m
                 },
                 new Flight
                 {
@@ -171,7 +188,8 @@ namespace IsraelAirlines.data.Contex
                     Destination = "Paris",
                     DepartureTime = new DateTime(2027, 1, 11, 9, 0, 0, DateTimeKind.Utc),
                     ArrivalTime = new DateTime(2027, 1, 11, 14, 30, 0, DateTimeKind.Utc),
-                    DurationMinutes = 330
+                    DurationMinutes = 330,
+                    Price = 1100m
                 }
             );
 

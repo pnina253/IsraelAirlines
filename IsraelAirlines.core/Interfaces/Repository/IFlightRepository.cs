@@ -1,4 +1,5 @@
-﻿
+
+using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.Entities;
 
 namespace IsraelAirlines.core.Interfaces.Repository
@@ -13,9 +14,8 @@ namespace IsraelAirlines.core.Interfaces.Repository
             string flightNumber,
             CancellationToken cancellationToken);
 
-        Task<IReadOnlyList<Flight>> SearchAsync(
-            string? origin,
-            string? destination,
+        Task<(IReadOnlyList<Flight> Items, int TotalCount)> SearchAsync(
+            FlightSearchQuery query,
             CancellationToken cancellationToken);
 
         Task AddAsync(

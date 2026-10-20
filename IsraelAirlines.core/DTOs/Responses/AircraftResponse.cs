@@ -1,4 +1,4 @@
-﻿using IsraelAirlines.core.Entities;
+using IsraelAirlines.core.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -17,5 +17,11 @@ namespace IsraelAirlines.core.DTOs.Responses
 
 
         public bool IsActive { get; set; }
+
+        public int Rows { get; set; }
+
+        public string SeatLayout { get; set; } = string.Empty;
+
+        public int BusinessRows { get; set; }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using IsraelAirlines.core.Entities;
+using IsraelAirlines.core.Exceptions;
 using IsraelAirlines.core.Interfaces.Repository;
 using IsraelAirlines.data.Contex;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -38,7 +40,22 @@ namespace IsraelAirlines.data.Repositories
             CancellationToken cancellationToken = default)
         {
             await _context.Users.AddAsync(user, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception)
+                when (exception.InnerException is PostgresException
+                {
+                    SqlState: PostgresErrorCodes.UniqueViolation
+                } postgresException
+                && postgresException.ConstraintName ==
+                    "IX_Users_Email")
+            {
+                throw new ConflictException(
+                    "A user with this email already exists.");
+            }
         }
 
         public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken)

@@ -1,5 +1,6 @@
-﻿
+
 using AutoMapper;
+using IsraelAirlines.core.Constants;
 using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.DTOs.Responses;
 using IsraelAirlines.core.Entities;
@@ -74,7 +75,7 @@ public class UserService : IUserService
         {
             FullName = request.FullName.Trim(),
             Email = email,
-            Role = "User"
+            Role = Roles.User
         };
 
         user.PasswordHash = _passwordHasher.HashPassword(
@@ -115,7 +116,7 @@ public class UserService : IUserService
         }
         var token = _jwtService.GenerateToken(user.Id,user.Email,user.Role);
         var userResponse = _mapper.Map<UserResponse>(user);
-        return new LoginResponse() { Token = token ,User = userResponse };
+        return new LoginResponse() { Token = token, User = userResponse, Role = user.Role };
     }
 
 

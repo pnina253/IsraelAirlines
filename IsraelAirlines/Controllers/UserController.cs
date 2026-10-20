@@ -1,4 +1,6 @@
-﻿using IsraelAirlines.core.DTOs.Requests;
+﻿using IsraelAirlines.api.Extensions;
+using IsraelAirlines.core.Constants;
+using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.DTOs.Responses;
 using IsraelAirlines.core.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -19,7 +21,7 @@ namespace IsraelAirlines.api.Controllers
             _userService = userService;
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         [ProducesResponseType(typeof(IReadOnlyList<UserResponse>), StatusCodes.Status200OK)]
         [HttpGet]
         public async Task<IActionResult> getAll(CancellationToken cancellationToken)
@@ -36,14 +38,11 @@ namespace IsraelAirlines.api.Controllers
         int id,
         CancellationToken cancellationToken)
         {
-            var isAdmin = User.IsInRole("Admin");
-
-
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole(Roles.Admin);
 
 
             if (!isAdmin &&
-            (   !int.TryParse(currentUserId, out var parsedUserId) ||
+            (   !User.TryGetUserId(out var parsedUserId) ||
             parsedUserId != id))
             {
                 return Forbid();
@@ -76,7 +75,7 @@ namespace IsraelAirlines.api.Controllers
         }
 
        
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet("by-email")]
@@ -85,7 +84,7 @@ namespace IsraelAirlines.api.Controllers
             CancellationToken cancellationToken)
         {
 
-            var isAdmin = User.IsInRole("Admin");
+            var isAdmin = User.IsInRole(Roles.Admin);
             var currentUserEmail = User.FindFirstValue(ClaimTypes.Email);
 
             if (!isAdmin &&

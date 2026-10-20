@@ -1,4 +1,4 @@
-﻿using IsraelAirlines.core.Entities;
+using IsraelAirlines.core.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -12,6 +12,9 @@ namespace IsraelAirlines.core.Interfaces.Repository
         Task<bool> IsSeatReservedAsync(
             int flightId,
             string seatNumber,
+            CancellationToken cancellationToken);
+        Task<IReadOnlyList<string>> GetReservedSeatsAsync(
+            int flightId,
             CancellationToken cancellationToken);
         Task AddAsync(Reservation reservation, CancellationToken cancellationToken);
         Task<IReadOnlyList<Reservation>> GetAllAsync(

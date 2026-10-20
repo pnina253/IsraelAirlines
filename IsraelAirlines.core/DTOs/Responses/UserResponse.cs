@@ -1,5 +1,4 @@
 ﻿using IsraelAirlines.core.Entities;
-using IsraelAirlines.core.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;

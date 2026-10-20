@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
@@ -19,7 +19,9 @@ namespace IsraelAirlines.core.DTOs.Requests
         [MaxLength(100)]
         public string Destination { get; set; } = string.Empty;
 
-        public DateTime DeparetureTime { get; set; }
+        [Required]
+        public DateTime? DepartureTime { get; set; }
+
         [Required]
         [Range(1,3000)]
         public int DurationMinutes { get; set; }
@@ -27,6 +29,10 @@ namespace IsraelAirlines.core.DTOs.Requests
         [Required]
         [MaxLength(20)]
         public string RegistrationNumber { get; set; } = string.Empty;
+
+        [Required]
+        [Range(typeof(decimal), "0.01", "100000")]
+        public decimal? Price { get; set; }
 
     }
 }

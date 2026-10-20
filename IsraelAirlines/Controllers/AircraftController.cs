@@ -1,7 +1,8 @@
 ﻿
+using IsraelAirlines.core.Constants;
 using IsraelAirlines.core.DTOs.Requests;
-using IsraelAirlines.core.Interfaces;
 using IsraelAirlines.core.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IsraelAirlines.API.Controllers;
@@ -41,8 +42,12 @@ public class AircraftController : ControllerBase
 
         return Ok(aircraft);
     }
+    [Authorize(Roles = Roles.Admin)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [HttpPost]
     public async Task<IActionResult> Create(
         [FromBody] AircraftRequest request,

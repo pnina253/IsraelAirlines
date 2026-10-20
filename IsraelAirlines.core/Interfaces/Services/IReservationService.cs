@@ -19,6 +19,7 @@ namespace IsraelAirlines.core.Interfaces.Services
             CancellationToken cancellationToken = default);
 
         Task<ReservationResponse> CreateAsync(
+            int userId,
             ReservationRequest request,
             CancellationToken cancellationToken = default);
     }

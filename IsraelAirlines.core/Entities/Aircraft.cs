@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -17,6 +17,15 @@ public class Aircraft
 
     public bool IsActive { get; set; }
     // האם המטוס פעיל וזמין לשימוש
+
+    public int Rows { get; set; }
+    // מספר שורות המושבים במטוס
+
+    public string SeatLayout { get; set; } = string.Empty;
+    // אותיות המושבים בכל שורה, רווח מסמן מעבר. למשל "ABC DEF"
+
+    public int BusinessRows { get; set; }
+    // מספר השורות הראשונות שהן מחלקת עסקים
 
     public ICollection<Flight> Flights { get; set; } = new List<Flight>();
 }

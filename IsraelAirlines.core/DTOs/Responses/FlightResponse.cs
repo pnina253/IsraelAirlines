@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -19,9 +19,13 @@ namespace IsraelAirlines.core.DTOs.Responses
         //מחושב אוטמטית על פי זמן הטיסה
         public int DurationMinutes { get; set; }
 
+        public int AircraftId { get; set; }
+
         public string AircraftModel { get; set; } = string.Empty;
 
         public string RegistrationNumber { get; set; } = string.Empty;
+
+        public decimal Price { get; set; }
 
     }
 }

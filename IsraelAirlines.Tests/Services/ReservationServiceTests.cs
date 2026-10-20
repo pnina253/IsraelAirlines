@@ -1,4 +1,4 @@
-﻿
+
 using AutoMapper;
 using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.DTOs.Responses;
@@ -16,6 +16,7 @@ public class ReservationServiceTests
     private readonly Mock<IReservationRepository> _reservationRepository;
     private readonly Mock<IFlightRepository> _flightRepository;
     private readonly Mock<IMapper> _mapper;
+    private const int UserId = 7;
     private readonly ReservationService _service;
 
     public ReservationServiceTests()
@@ -47,10 +48,51 @@ public class ReservationServiceTests
             .ReturnsAsync((Flight?)null);
 
         // Act
-        var action = () => _service.CreateAsync(request);
+        var action = () => _service.CreateAsync(UserId, request);
 
         // Assert
         await Assert.ThrowsAsync<NotFoundException>(action);
+
+        _reservationRepository.Verify(
+            r => r.AddAsync(
+                It.IsAny<Reservation>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    private static Flight CreateFlight() => new()
+    {
+        Id = 1,
+        FlightNumber = "FL100",
+        Aircraft = new Aircraft { Rows = 30, SeatLayout = "ABC DEF" }
+    };
+
+    [Theory]
+    [InlineData("31A")]
+    [InlineData("12G")]
+    [InlineData("0A")]
+    [InlineData("A12")]
+    public async Task CreateAsync_WhenSeatDoesNotExistOnAircraft_ThrowsBadRequestException(
+        string seatNumber)
+    {
+        // Arrange
+        var request = new ReservationRequest
+        {
+            FlightNumber = "FL100",
+            SeatNumber = seatNumber
+        };
+
+        _flightRepository
+            .Setup(r => r.GetByFlightNumberAsync(
+                request.FlightNumber,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateFlight());
+
+        // Act
+        var action = () => _service.CreateAsync(UserId, request);
+
+        // Assert
+        await Assert.ThrowsAsync<BadRequestException>(action);
 
         _reservationRepository.Verify(
             r => r.AddAsync(
@@ -69,11 +111,7 @@ public class ReservationServiceTests
             SeatNumber = "12A"
         };
 
-        var flight = new Flight
-        {
-            Id = 1,
-            FlightNumber = "FL100"
-        };
+        var flight = CreateFlight();
 
         _flightRepository
             .Setup(r => r.GetByFlightNumberAsync(
@@ -89,7 +127,7 @@ public class ReservationServiceTests
             .ReturnsAsync(true);
 
         // Act
-        var action = () => _service.CreateAsync(request);
+        var action = () => _service.CreateAsync(UserId, request);
 
         // Assert
         await Assert.ThrowsAsync<ConflictException>(action);
@@ -111,11 +149,7 @@ public class ReservationServiceTests
             SeatNumber = " 12a "
         };
 
-        var flight = new Flight
-        {
-            Id = 1,
-            FlightNumber = "FL100"
-        };
+        var flight = CreateFlight();
 
         var expectedResponse = new ReservationResponse
         {
@@ -154,11 +188,12 @@ public class ReservationServiceTests
             .Returns(expectedResponse);
 
         // Act
-        var result = await _service.CreateAsync(request);
+        var result = await _service.CreateAsync(UserId, request);
 
         // Assert
         Assert.NotNull(savedReservation);
         Assert.Equal(1, savedReservation.FlightId);
+        Assert.Equal(UserId, savedReservation.UserId);
         Assert.Equal("12A", savedReservation.SeatNumber);
 
         Assert.Equal("FL100", result.FlightNumber);
@@ -184,11 +219,7 @@ public class ReservationServiceTests
             SeatNumber = "12A"
         };
 
-        var flight = new Flight
-        {
-            Id = 1,
-            FlightNumber = "FL100"
-        };
+        var flight = CreateFlight();
 
         _flightRepository
             .Setup(r => r.GetByFlightNumberAsync(
@@ -205,7 +236,7 @@ public class ReservationServiceTests
 
         // Act
         await Assert.ThrowsAsync<ConflictException>(
-            () => _service.CreateAsync(request, token));
+            () => _service.CreateAsync(UserId, request, token));
 
         // Assert
         _flightRepository.Verify(
