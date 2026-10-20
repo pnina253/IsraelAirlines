@@ -10,6 +10,11 @@ namespace IsraelAirlines.core.Interfaces.Repository
             int id,
             CancellationToken cancellationToken);
 
+        // Tracked, for update and delete. Includes the aircraft and the seats.
+        Task<Flight?> GetForUpdateAsync(
+            int id,
+            CancellationToken cancellationToken);
+
         Task<Flight?> GetByFlightNumberAsync(
             string flightNumber,
             CancellationToken cancellationToken);
@@ -18,8 +23,14 @@ namespace IsraelAirlines.core.Interfaces.Repository
             FlightSearchQuery query,
             CancellationToken cancellationToken);
 
+        Task<bool> HasReservationsAsync(
+            int flightId,
+            CancellationToken cancellationToken);
+
         Task AddAsync(
             Flight flight,
             CancellationToken cancellationToken);
+
+        void Remove(Flight flight);
     }
 }

@@ -1,13 +1,11 @@
 using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.Entities;
+using IsraelAirlines.core.Enums;
 using IsraelAirlines.core.Exceptions;
 using IsraelAirlines.core.Interfaces.Repository;
-using IsraelAirlines.data.Contex;
+using IsraelAirlines.data.Context;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace IsraelAirlines.data.Repositories
 {
@@ -25,8 +23,21 @@ namespace IsraelAirlines.data.Repositories
             CancellationToken cancellationToken = default)
         {
             return await _context.Flights
-            .Include(f => f.Aircraft)
-            .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+                .AsNoTracking()
+                .Include(f => f.Aircraft)
+                    .ThenInclude(a => a.Amenities)
+                .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+        }
+
+        public async Task<Flight?> GetForUpdateAsync(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            return await _context.Flights
+                .Include(f => f.Aircraft)
+                    .ThenInclude(a => a.Amenities)
+                .Include(f => f.Seats)
+                .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
         }
 
         public async Task<(IReadOnlyList<Flight> Items, int TotalCount)> SearchAsync(
@@ -63,16 +74,31 @@ namespace IsraelAirlines.data.Repositories
 
             var totalCount = await query.CountAsync(cancellationToken);
 
-            // A stable order is required, otherwise rows can repeat or vanish across pages.
-            var items = await query
-                .OrderBy(f => f.DepartureTime)
-                .ThenBy(f => f.Id)
+            // Skip/Take run in SQL. The Id tie-breaker keeps the order stable, otherwise
+            // rows can repeat or vanish across pages.
+            var items = await Sort(query, search)
                 .Skip((search.Page - 1) * search.PageSize)
                 .Take(search.PageSize)
                 .Include(f => f.Aircraft)
+                    .ThenInclude(a => a.Amenities)
                 .ToListAsync(cancellationToken);
 
             return (items, totalCount);
+        }
+
+        private static IOrderedQueryable<Flight> Sort(IQueryable<Flight> query, FlightSearchQuery search)
+        {
+            var ordered = (search.SortBy, search.SortDescending) switch
+            {
+                (FlightSortField.Price, false) => query.OrderBy(f => f.Price),
+                (FlightSortField.Price, true) => query.OrderByDescending(f => f.Price),
+                (FlightSortField.Destination, false) => query.OrderBy(f => f.Destination),
+                (FlightSortField.Destination, true) => query.OrderByDescending(f => f.Destination),
+                (_, true) => query.OrderByDescending(f => f.DepartureTime),
+                _ => query.OrderBy(f => f.DepartureTime)
+            };
+
+            return ordered.ThenBy(f => f.Id);
         }
 
         // Case-insensitive "contains" match; user input is escaped so % and _ are literal.
@@ -86,15 +112,25 @@ namespace IsraelAirlines.data.Repositories
             return $"%{escaped}%";
         }
 
+        // Read-only lookup, used to validate a seat before booking it.
         public async Task<Flight?> GetByFlightNumberAsync(
             string flightNumber,
             CancellationToken cancellationToken)
         {
             return await _context.Flights
+                .AsNoTracking()
                 .Include(f => f.Aircraft)
                 .FirstOrDefaultAsync(
                     f => f.FlightNumber == flightNumber,
                     cancellationToken);
+        }
+
+        public async Task<bool> HasReservationsAsync(
+            int flightId,
+            CancellationToken cancellationToken)
+        {
+            return await _context.Reservations
+                .AnyAsync(r => r.FlightId == flightId, cancellationToken);
         }
 
         public async Task AddAsync(
@@ -118,6 +154,11 @@ namespace IsraelAirlines.data.Repositories
                 throw new ConflictException(
                     "A flight with this number already exists.");
             }
+        }
+
+        public void Remove(Flight flight)
+        {
+            _context.Flights.Remove(flight);
         }
     }
 }

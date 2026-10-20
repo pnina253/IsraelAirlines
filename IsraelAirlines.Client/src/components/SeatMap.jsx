@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { CABIN_LABELS, POSITION_LABELS, describeSeat, layoutGroups } from '../utils/seats';
 
 // Draws the cabin from the aircraft layout returned by the server.
-// Taken seats come from GET /api/Flight/{id}/reserved-seats; nothing here is invented locally.
+// Taken seats come from GET /api/flights/{id}/reserved-seats; nothing here is invented locally.
 export default function SeatMap({ aircraft, reservedSeats, selectedSeat, conflictSeat, onSelect, disabled }) {
   const groups = layoutGroups(aircraft);
   const taken = new Set(reservedSeats);

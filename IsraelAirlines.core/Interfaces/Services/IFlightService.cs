@@ -24,5 +24,15 @@ namespace IsraelAirlines.core.Interfaces.Services
         Task<FlightResponse> CreateAsync(
             FlightRequest request,
             CancellationToken cancellationToken = default);
+
+        // Return null / false when the flight does not exist.
+        Task<FlightResponse?> UpdateAsync(
+            int id,
+            FlightRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<bool> DeleteAsync(
+            int id,
+            CancellationToken cancellationToken = default);
     }
 }

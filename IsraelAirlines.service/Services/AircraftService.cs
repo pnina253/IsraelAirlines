@@ -6,20 +6,27 @@ using IsraelAirlines.core.Entities;
 using IsraelAirlines.core.Exceptions;
 using IsraelAirlines.core.Interfaces.Repository;
 using IsraelAirlines.core.Interfaces.Services;
+using Microsoft.Extensions.Logging;
 
 namespace IsraelAirlines.Service.Services;
 
 public class AircraftService : IAircraftService
 {
     private readonly IAircraftRepository _aircraftRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly ILogger<AircraftService> _logger;
 
     public AircraftService(
         IAircraftRepository aircraftRepository,
-        IMapper mapper)
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        ILogger<AircraftService> logger)
     {
         _aircraftRepository = aircraftRepository;
+        _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _logger = logger;
     }
 
     public async Task<AircraftResponse?> GetByIdAsync(
@@ -60,6 +67,91 @@ public class AircraftService : IAircraftService
                 "An aircraft with this registration number already exists.");
         }
 
+        var aircraft = _mapper.Map<Aircraft>(request);
+        aircraft.SeatLayout = NormalizeSeatLayout(request);
+
+        await _aircraftRepository.AddAsync(
+            aircraft, cancellationToken);
+
+        _logger.LogInformation(
+            "Aircraft {RegistrationNumber} created", aircraft.RegistrationNumber);
+
+        return _mapper.Map<AircraftResponse>(aircraft);
+    }
+
+    public async Task<AircraftResponse?> UpdateAsync(
+        int id,
+        AircraftRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var aircraft = await _aircraftRepository.GetForUpdateAsync(
+            id, cancellationToken);
+
+        if (aircraft is null)
+            return null;
+
+        var registrationNumber = request.RegistrationNumber.Trim();
+
+        if (registrationNumber != aircraft.RegistrationNumber)
+        {
+            var existingAircraft = await _aircraftRepository.GetByRegistrationNumberAsync(
+                registrationNumber, cancellationToken);
+
+            if (existingAircraft is not null)
+            {
+                throw new ConflictException(
+                    "An aircraft with this registration number already exists.");
+            }
+        }
+
+        var seatLayout = NormalizeSeatLayout(request);
+        var layoutChanged = seatLayout != aircraft.SeatLayout || request.Rows != aircraft.Rows;
+
+        // Existing flights already have seats built from the current layout.
+        if (layoutChanged &&
+            await _aircraftRepository.HasFlightsAsync(aircraft.Id, cancellationToken))
+        {
+            throw new ConflictException(
+                "The seat layout of an aircraft with flights cannot be changed.");
+        }
+
+        _mapper.Map(request, aircraft);
+        aircraft.SeatLayout = seatLayout;
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Aircraft {AircraftId} updated", aircraft.Id);
+
+        return _mapper.Map<AircraftResponse>(aircraft);
+    }
+
+    public async Task<bool> DeleteAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var aircraft = await _aircraftRepository.GetForUpdateAsync(
+            id, cancellationToken);
+
+        if (aircraft is null)
+            return false;
+
+        if (await _aircraftRepository.HasFlightsAsync(aircraft.Id, cancellationToken))
+        {
+            throw new ConflictException(
+                "An aircraft that has flights cannot be deleted.");
+        }
+
+        _aircraftRepository.Remove(aircraft);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Aircraft {AircraftId} deleted", id);
+
+        return true;
+    }
+
+    // Upper-case letters with single spaces for aisles, e.g. "ABC DEF".
+    private static string NormalizeSeatLayout(AircraftRequest request)
+    {
         var seatLayout = string.Join(' ',
             request.SeatLayout.Trim().ToUpperInvariant()
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries));
@@ -77,19 +169,6 @@ public class AircraftService : IAircraftService
                 "Business rows cannot exceed the total number of rows.");
         }
 
-        var aircraft = new Aircraft
-        {
-            Model = request.Model.Trim(),
-            RegistrationNumber = registrationNumber,
-            IsActive = request.IsActive,
-            Rows = request.Rows,
-            SeatLayout = seatLayout,
-            BusinessRows = request.BusinessRows
-        };
-
-        await _aircraftRepository.AddAsync(
-            aircraft, cancellationToken);
-
-        return _mapper.Map<AircraftResponse>(aircraft);
+        return seatLayout;
     }
 }

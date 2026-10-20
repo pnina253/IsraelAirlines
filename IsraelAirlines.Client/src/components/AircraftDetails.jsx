@@ -4,7 +4,7 @@ export function seatCount(aircraft) {
   return aircraft.rows * aircraft.seatLayout.replace(/ /g, '').length;
 }
 
-// Aircraft data exactly as GET /api/Aircraft returns it, plus the seat count derived from the layout.
+// Aircraft data exactly as GET /api/aircraft returns it, plus the seat count derived from the layout.
 export default function AircraftDetails({ aircraft, compact = false }) {
   const seatsPerRow = aircraft.seatLayout.replace(/ /g, '').length;
   const businessSeats = aircraft.businessRows * seatsPerRow;

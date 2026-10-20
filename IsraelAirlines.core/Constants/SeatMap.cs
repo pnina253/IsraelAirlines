@@ -21,4 +21,16 @@ public static partial class SeatMap
 
         return row <= aircraft.Rows && aircraft.SeatLayout.Contains(letter);
     }
+
+    // Every seat number of the aircraft, row by row: "1A", "1B", ... "30F".
+    public static IEnumerable<string> AllSeats(Aircraft aircraft)
+    {
+        var letters = aircraft.SeatLayout.Replace(" ", string.Empty);
+
+        for (var row = 1; row <= aircraft.Rows; row++)
+        {
+            foreach (var letter in letters)
+                yield return $"{row}{letter}";
+        }
+    }
 }

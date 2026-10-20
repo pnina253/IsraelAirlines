@@ -1,10 +1,10 @@
 ﻿using IsraelAirlines.core.Constants;
 using IsraelAirlines.core.Entities;
-using IsraelAirlines.data.Contex;
+using IsraelAirlines.data.Context;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace IsraelAirlines.api.Initialization;
+namespace IsraelAirlines.API.Initialization;
 
 public static class DatabaseSeeder
 {
@@ -31,18 +31,15 @@ public static class DatabaseSeeder
         if (await context.Users.AnyAsync())
             return;
 
+        // Demo passwords come from configuration (appsettings.Development.json or User Secrets),
+        // never from code.
         var adminPassword = configuration["Seed:AdminPassword"];
 
         if (string.IsNullOrWhiteSpace(adminPassword))
         {
-            if (!environment.IsDevelopment())
-            {
-                logger.LogWarning(
-                    "Seed:AdminPassword is not set; skipping user seed.");
-                return;
-            }
-
-            adminPassword = "Admin123!";
+            logger.LogWarning(
+                "Seed:AdminPassword is not set; skipping user seed.");
+            return;
         }
 
         var admin = new User
@@ -58,7 +55,9 @@ public static class DatabaseSeeder
         context.Users.Add(admin);
 
         // The test user with a known password exists only in Development.
-        if (environment.IsDevelopment())
+        var userPassword = configuration["Seed:UserPassword"];
+
+        if (environment.IsDevelopment() && !string.IsNullOrWhiteSpace(userPassword))
         {
             var regularUser = new User
             {
@@ -68,11 +67,13 @@ public static class DatabaseSeeder
             };
 
             regularUser.PasswordHash = passwordHasher.HashPassword(
-                regularUser, "User123!");
+                regularUser, userPassword);
 
             context.Users.Add(regularUser);
         }
 
         await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded the demo users");
     }
 }

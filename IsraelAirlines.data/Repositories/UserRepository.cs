@@ -1,7 +1,7 @@
 ﻿using IsraelAirlines.core.Entities;
 using IsraelAirlines.core.Exceptions;
 using IsraelAirlines.core.Interfaces.Repository;
-using IsraelAirlines.data.Contex;
+using IsraelAirlines.data.Context;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System;
@@ -24,6 +24,7 @@ namespace IsraelAirlines.data.Repositories
             CancellationToken cancellationToken = default)
         {
             return await _context.Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         }
 
@@ -32,6 +33,7 @@ namespace IsraelAirlines.data.Repositories
             CancellationToken cancellationToken = default)
         {
             return await _context.Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
         }
 

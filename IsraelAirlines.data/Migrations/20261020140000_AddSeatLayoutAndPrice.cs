@@ -1,4 +1,4 @@
-using IsraelAirlines.data.Contex;
+using IsraelAirlines.data.Context;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 

@@ -28,4 +28,6 @@ public class Aircraft
     // מספר השורות הראשונות שהן מחלקת עסקים
 
     public ICollection<Flight> Flights { get; set; } = new List<Flight>();
+
+    public ICollection<Amenity> Amenities { get; set; } = new List<Amenity>();
 }

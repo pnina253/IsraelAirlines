@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace IsraelAirlines.api.Extensions;
+namespace IsraelAirlines.API.Extensions;
 
 public static class ClaimsPrincipalExtensions
 {

@@ -27,5 +27,7 @@ namespace IsraelAirlines.core.DTOs.Responses
 
         public decimal Price { get; set; }
 
+        public IReadOnlyList<string> Amenities { get; set; } = [];
+
     }
 }

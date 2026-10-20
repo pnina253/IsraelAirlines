@@ -1,3 +1,4 @@
+using IsraelAirlines.core.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace IsraelAirlines.core.DTOs.Requests
@@ -20,5 +21,9 @@ namespace IsraelAirlines.core.DTOs.Requests
         public DateOnly? FromDate { get; set; }
 
         public DateOnly? ToDate { get; set; }
+
+        public FlightSortField SortBy { get; set; } = FlightSortField.DepartureTime;
+
+        public bool SortDescending { get; set; }
     }
 }

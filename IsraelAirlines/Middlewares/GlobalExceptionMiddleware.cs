@@ -1,12 +1,9 @@
 ﻿using IsraelAirlines.core.Exceptions;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Authentication;
-using System.Text.Json;
 
 namespace IsraelAirlines.API.Middlewares;
 
+// First in the pipeline, so an exception from any later step becomes a JSON error.
 public class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
@@ -26,18 +23,15 @@ public class GlobalExceptionMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            // The client went away; there is nobody to answer.
+            _logger.LogInformation(
+                "Request {Method} {Path} was cancelled by the client",
+                context.Request.Method, context.Request.Path);
+        }
         catch (Exception exception)
         {
-            _logger.LogError(
-             exception,
-            "An unhandled exception occurred. CorrelationId: {CorrelationId}",
-             context.TraceIdentifier);
-
-            if (context.Response.HasStarted)
-            {
-                throw;
-            }
-
             var statusCode = exception switch
             {
                 BadRequestException => StatusCodes.Status400BadRequest,
@@ -45,25 +39,37 @@ public class GlobalExceptionMiddleware
                 ForbiddenException => StatusCodes.Status403Forbidden,
                 NotFoundException => StatusCodes.Status404NotFound,
                 ConflictException => StatusCodes.Status409Conflict,
-                DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
-
                 _ => StatusCodes.Status500InternalServerError
             };
 
-            var problem = new ProblemDetails
+            if (statusCode == StatusCodes.Status500InternalServerError)
             {
-                Status = statusCode,
-                Title = ReasonPhrases.GetReasonPhrase(statusCode),
-                Detail = statusCode == StatusCodes.Status500InternalServerError
-                    ? "An unexpected error occurred."
-                    : exception.Message,
-                Instance = context.Request.Path
-            };
-            problem.Extensions["correlationId"] = context.TraceIdentifier;
+                // A real failure: full exception with stack trace.
+                _logger.LogError(
+                    exception,
+                    "Unhandled exception for {Method} {Path}. CorrelationId: {CorrelationId}",
+                    context.Request.Method, context.Request.Path, context.TraceIdentifier);
+            }
+            else
+            {
+                // An expected, handled business outcome (validation, not found, conflict).
+                _logger.LogWarning(
+                    "Request {Method} {Path} rejected with {StatusCode}: {Reason}. CorrelationId: {CorrelationId}",
+                    context.Request.Method, context.Request.Path, statusCode,
+                    exception.Message, context.TraceIdentifier);
+            }
 
-            context.Response.StatusCode = statusCode;
-            await context.Response.WriteAsJsonAsync(
-                problem, (JsonSerializerOptions?)null, "application/problem+json");
+            if (context.Response.HasStarted)
+            {
+                throw;
+            }
+
+            await ProblemDetailsWriter.WriteAsync(
+                context,
+                statusCode,
+                statusCode == StatusCodes.Status500InternalServerError
+                    ? "An unexpected error occurred."
+                    : exception.Message);
         }
     }
 }

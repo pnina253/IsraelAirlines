@@ -8,7 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace IsraelAirlines.service.Services
+namespace IsraelAirlines.Service.Services
 {
     public class JwtService : IJwtService
     {

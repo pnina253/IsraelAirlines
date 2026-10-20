@@ -1,25 +1,47 @@
-using IsraelAirlines.api.Initialization;
+using IsraelAirlines.API.Initialization;
 using IsraelAirlines.API.Middlewares;
 using IsraelAirlines.core.Configuration;
 using IsraelAirlines.core.Entities;
 using IsraelAirlines.core.Interfaces;
 using IsraelAirlines.core.Interfaces.Repository;
 using IsraelAirlines.core.Interfaces.Services;
-using IsraelAirlines.data.Contex;
+using IsraelAirlines.data.Context;
 using IsraelAirlines.data.Repositories;
-using IsraelAirlines.service.Services;
-using IsraelAirlines.service.Services.Mapping;
 using IsraelAirlines.Service.Services;
+using IsraelAirlines.Service.Services.Mapping;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using NLog;
 using NLog.Web;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("secret.js", optional: true);
+
+// ---------- Logging: the code logs through ILogger, NLog writes underneath ----------
+
+builder.Logging.ClearProviders();
+builder.Host.UseNLog(new NLogAspNetCoreOptions
+{
+    IncludeScopes = true
+});
+
+// NLog.config reads ${var:minLevel}: Debug in Development, Info elsewhere (see appsettings).
+var nlogConfiguration = LogManager.Configuration;
+if (nlogConfiguration is not null)
+{
+    nlogConfiguration.Variables["minLevel"] =
+        builder.Configuration["NLogSettings:MinLevel"] ?? "Info";
+    LogManager.ReconfigExistingLoggers();
+}
+
+// ---------- Configuration and secrets ----------
+// JwtSettings:Key and ConnectionStrings:DefaultConnection come from User Secrets in
+// Development and from environment variables elsewhere. Neither is in the repository.
+
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("JwtSettings"));
 var jwtSettings = builder.Configuration
@@ -34,6 +56,12 @@ if (string.IsNullOrWhiteSpace(jwtSettings.Key) ||
     throw new InvalidOperationException(
         "JWT signing key must contain at least 32 characters.");
 }
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' is missing.");
+
+// ---------- Authentication and authorization ----------
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -53,57 +81,89 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtSettings.Key))
         };
+
+        // 401 and 403 get the same JSON error body as every other error.
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                await ProblemDetailsWriter.WriteAsync(
+                    context.HttpContext,
+                    StatusCodes.Status401Unauthorized,
+                    "A valid access token is required.");
+            },
+            OnForbidden = context => ProblemDetailsWriter.WriteAsync(
+                context.HttpContext,
+                StatusCodes.Status403Forbidden,
+                "You do not have permission to perform this action.")
+        };
     });
 
 builder.Services.AddAuthorization();
 
-builder.Logging.ClearProviders();
-builder.Host.UseNLog(new NLogAspNetCoreOptions
-{
-    IncludeScopes = true
-});
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// ---------- Data ----------
 
-//Console.WriteLine($"Connection string found: {connectionString != null}");
-//Console.WriteLine($"Host: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Host}");
-//Console.WriteLine($"Database: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Database}");
-//Console.WriteLine($"Username: {new Npgsql.NpgsqlConnectionStringBuilder(connectionString).Username}");
-//var csb = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-//Console.WriteLine($"Password provided: {!string.IsNullOrEmpty(csb.Password)}");
-//using (var connection = new Npgsql.NpgsqlConnection(connectionString))
-//{
-//    try
-//    {
-//        connection.Open();
-//        Console.WriteLine("PostgreSQL connection successful");
-//    }
-//    catch (Exception ex)
-//    {
-//        Console.WriteLine($"PostgreSQL connection failed: {ex.Message}");
-//    }
-//}
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException(
-        "Connection string 'DefaultConnection' is missing.");
-
+// Scoped: one DbContext per request. A singleton holding it would share one change tracker
+// (and one connection) between concurrent requests, which DbContext does not support.
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseNpgsql(connectionString));
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAircraftRepository, AircraftRepository>();
+builder.Services.AddScoped<IFlightRepository, FlightRepository>();
+builder.Services.AddScoped<IFlightSeatRepository, FlightSeatRepository>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+
+// ---------- Services ----------
+
 builder.Services.AddAutoMapper(c =>
 {
     c.AddProfile<MappingProfile>();
 });
 
-// Add services to the container.
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IAircraftRepository, AircraftRepository>();
-builder.Services.AddScoped<IFlightRepository, FlightRepository>();
-builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAircraftService, AircraftService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+
+// ---------- API ----------
+
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // [ApiController] checks ModelState before the action runs. When the Data Annotations
+        // on a DTO fail, this factory builds the 400 response with the correlation id.
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var problem = new ValidationProblemDetails(context.ModelState)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors occurred.",
+                Instance = context.HttpContext.Request.Path
+            };
+            problem.Extensions["correlationId"] = context.HttpContext.TraceIdentifier;
+
+            context.HttpContext.RequestServices
+                .GetRequiredService<ILoggerFactory>()
+                .CreateLogger("ModelValidation")
+                .LogWarning(
+                    "Model validation failed for {Method} {Path}: {Fields}",
+                    context.HttpContext.Request.Method,
+                    context.HttpContext.Request.Path,
+                    string.Join(", ", context.ModelState
+                        .Where(e => e.Value?.Errors.Count > 0)
+                        .Select(e => e.Key)));
+
+            return new BadRequestObjectResult(problem)
+            {
+                ContentTypes = { "application/problem+json" }
+            };
+        };
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -123,7 +183,6 @@ builder.Services.AddSwaggerGen(options =>
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
-builder.Services.AddControllers();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
     ?? ["http://localhost:5173"];
@@ -133,15 +192,17 @@ builder.Services.AddCors(options =>
         .WithOrigins(allowedOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod()
-        .WithExposedHeaders("X-Correlation-ID")));
+        .WithExposedHeaders(CorrelationIdMiddleware.HeaderName)));
+
 builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = ctx =>
         ctx.ProblemDetails.Extensions["correlationId"] = ctx.HttpContext.TraceIdentifier);
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
 
-
 var app = builder.Build();
+
+// ---------- Database: migrate and seed, so the app runs right after the database is created ----------
 
 var dbInfo = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
 app.Logger.LogInformation(
@@ -154,10 +215,16 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
     await db.Database.MigrateAsync();
 }
 await DatabaseSeeder.SeedAsync(app.Services);
-app.UseMiddleware<GlobalExceptionMiddleware>();
-app.UseMiddleware<CorrelationIdMiddleware>();
 
-// Configure the HTTP request pipeline.
+// ---------- HTTP pipeline. Order matters ----------
+
+// 1. Error handling first, so it catches exceptions from everything below.
+app.UseMiddleware<GlobalExceptionMiddleware>();
+// 2. Correlation id before anything that logs.
+app.UseMiddleware<CorrelationIdMiddleware>();
+// 3. One log line per request, with the correlation id.
+app.UseMiddleware<RequestLoggingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -169,8 +236,8 @@ app.UseHttpsRedirection();
 
 app.UseCors("Client");
 
+// 4. Authentication (who are you) before authorization (what may you do).
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();

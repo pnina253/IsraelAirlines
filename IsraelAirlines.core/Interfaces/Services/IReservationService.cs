@@ -1,15 +1,13 @@
-﻿using IsraelAirlines.core.DTOs.Requests;
+using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.DTOs.Responses;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace IsraelAirlines.core.Interfaces.Services
 {
     public interface IReservationService
     {
         Task<IReadOnlyList<ReservationResponse>> GetAllAsync(
-    CancellationToken cancellationToken);
+            CancellationToken cancellationToken = default);
+
         Task<ReservationResponse?> GetByIdAsync(
             int id,
             CancellationToken cancellationToken = default);
@@ -21,6 +19,20 @@ namespace IsraelAirlines.core.Interfaces.Services
         Task<ReservationResponse> CreateAsync(
             int userId,
             ReservationRequest request,
+            CancellationToken cancellationToken = default);
+
+        // Only the owner or an admin may change or cancel a reservation.
+        Task<ReservationResponse> ChangeSeatAsync(
+            int reservationId,
+            int userId,
+            bool isAdmin,
+            ReservationUpdateRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task CancelAsync(
+            int reservationId,
+            int userId,
+            bool isAdmin,
             CancellationToken cancellationToken = default);
     }
 }

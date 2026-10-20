@@ -1,4 +1,4 @@
-﻿using IsraelAirlines.core.DTOs.Requests;
+using IsraelAirlines.core.DTOs.Requests;
 using IsraelAirlines.core.DTOs.Responses;
 using System;
 using System.Collections.Generic;
@@ -17,6 +17,16 @@ namespace IsraelAirlines.core.Interfaces.Services
 
         Task<AircraftResponse> CreateAsync(
             AircraftRequest request,
+            CancellationToken cancellationToken = default);
+
+        // Return null / false when the aircraft does not exist.
+        Task<AircraftResponse?> UpdateAsync(
+            int id,
+            AircraftRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<bool> DeleteAsync(
+            int id,
             CancellationToken cancellationToken = default);
     }
 }

@@ -1,25 +1,25 @@
 import { request } from './http';
 
-// GET /api/Flight -> { items, page, pageSize, totalCount, totalPages }. Paging and filtering run on the server.
+// GET /api/flights -> { items, page, pageSize, totalCount, totalPages }. Paging and filtering run on the server.
 export function searchFlights({ page, pageSize, origin, destination, fromDate, toDate }, { signal } = {}) {
-  return request('/api/Flight', {
+  return request('/api/flights', {
     query: { page, pageSize, origin, destination, fromDate, toDate },
     signal,
   });
 }
 
 export function getFlight(id, { signal } = {}) {
-  return request(`/api/Flight/${id}`, { signal });
+  return request(`/api/flights/${id}`, { signal });
 }
 
 // Requires login. Returns seat numbers only, e.g. ["2D", "14C"].
 export function getReservedSeats(flightId, { signal } = {}) {
-  return request(`/api/Flight/${flightId}/reserved-seats`, { signal });
+  return request(`/api/flights/${flightId}/reserved-seats`, { signal });
 }
 
 // Admin only.
 export function createFlight(flight) {
-  return request('/api/Flight', { method: 'POST', body: flight });
+  return request('/api/flights', { method: 'POST', body: flight });
 }
 
 // Loads every flight matching the filters by walking the server's pages (100 per request).

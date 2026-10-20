@@ -1,6 +1,47 @@
-@IsraelAirlines_HostAddress = http://localhost:5154
+@host = http://localhost:5154
+# Paste the "token" from a login response here.
+@token = paste-token-here
 
-GET {{IsraelAirlines_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login as the demo user
+POST {{host}}/api/auth/login
+Content-Type: application/json
 
-###
+{ "email": "user@example.com", "password": "User123!" }
+
+### Register (always gets the User role)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "fullName": "New Passenger", "email": "new@example.com", "password": "Passenger123!" }
+
+### Flights: filter, sort and page (all in SQL)
+GET {{host}}/api/flights?origin=tel&sortBy=Price&sortDescending=true&page=1&pageSize=5
+
+### One flight, with the aircraft and its amenities
+GET {{host}}/api/flights/1
+
+### Reserved seats of a flight
+GET {{host}}/api/flights/1/reserved-seats
+Authorization: Bearer {{token}}
+
+### Reserve a seat. Send it twice: the second call returns 409.
+POST {{host}}/api/reservations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "flightNumber": "IA101", "seatNumber": "12A" }
+
+### My reservations
+GET {{host}}/api/reservations/me
+Authorization: Bearer {{token}}
+
+### Move reservation 1 to another seat
+PUT {{host}}/api/reservations/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "seatNumber": "14C" }
+
+### Cancel reservation 1 (204)
+DELETE {{host}}/api/reservations/1
+Authorization: Bearer {{token}}

@@ -23,5 +23,7 @@ namespace IsraelAirlines.core.DTOs.Responses
         public string SeatLayout { get; set; } = string.Empty;
 
         public int BusinessRows { get; set; }
+
+        public IReadOnlyList<string> Amenities { get; set; } = [];
     }
 }

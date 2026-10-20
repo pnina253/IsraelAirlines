@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 
-namespace IsraelAirlines.data.Contex
+namespace IsraelAirlines.data.Context
 {
     public class DataContext : DbContext
     {
@@ -21,27 +21,35 @@ namespace IsraelAirlines.data.Contex
         public DbSet<Aircraft> Aircrafts => Set<Aircraft>();
         public DbSet<Flight> Flights => Set<Flight>();
         public DbSet<Reservation> Reservations => Set<Reservation>();
+        public DbSet<FlightSeat> FlightSeats => Set<FlightSeat>();
+        public DbSet<Amenity> Amenities => Set<Amenity>();
 
         public override int SaveChanges()
         {
-            UpdateReservationVersions();
+            RenewConcurrencyTokens();
             return base.SaveChanges();
         }
 
         public override Task<int> SaveChangesAsync(
             CancellationToken cancellationToken = default)
         {
-            UpdateReservationVersions();
+            RenewConcurrencyTokens();
             return base.SaveChangesAsync(cancellationToken);
         }
 
-        private void UpdateReservationVersions()
+        // Every modified row gets a new Version. EF still sends the original value in the
+        // WHERE clause, so an update based on a stale read matches no row and throws
+        // DbUpdateConcurrencyException. Doing it here means no service has to remember it.
+        private void RenewConcurrencyTokens()
         {
-            var entries = ChangeTracker
-                .Entries<Reservation>()
-                .Where(e => e.State == EntityState.Modified);
+            foreach (var entry in ChangeTracker.Entries<FlightSeat>()
+                .Where(e => e.State == EntityState.Modified))
+            {
+                entry.Entity.Version = Guid.NewGuid();
+            }
 
-            foreach (var entry in entries)
+            foreach (var entry in ChangeTracker.Entries<Reservation>()
+                .Where(e => e.State == EntityState.Modified))
             {
                 entry.Entity.Version = Guid.NewGuid();
             }
@@ -93,6 +101,69 @@ namespace IsraelAirlines.data.Contex
                     .WithOne(f => f.Aircraft)
                     .HasForeignKey(f => f.AircraftId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                // Many-to-many through the AircraftAmenities join table.
+                entity.HasMany(a => a.Amenities)
+                    .WithMany(m => m.Aircraft)
+                    .UsingEntity<Dictionary<string, object>>(
+                        "AircraftAmenities",
+                        right => right.HasOne<Amenity>()
+                            .WithMany()
+                            .HasForeignKey("AmenityId")
+                            .OnDelete(DeleteBehavior.Cascade),
+                        left => left.HasOne<Aircraft>()
+                            .WithMany()
+                            .HasForeignKey("AircraftId")
+                            .OnDelete(DeleteBehavior.Cascade),
+                        join =>
+                        {
+                            join.HasKey("AircraftId", "AmenityId");
+                            join.HasData(
+                                new { AircraftId = 1, AmenityId = 1 },
+                                new { AircraftId = 1, AmenityId = 2 },
+                                new { AircraftId = 2, AmenityId = 1 },
+                                new { AircraftId = 2, AmenityId = 2 },
+                                new { AircraftId = 2, AmenityId = 3 },
+                                new { AircraftId = 2, AmenityId = 4 });
+                        });
+            });
+
+            modelBuilder.Entity<Amenity>(entity =>
+            {
+                entity.HasKey(m => m.Id);
+
+                entity.Property(m => m.Name)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.HasIndex(m => m.Name)
+                    .IsUnique();
+
+                entity.HasData(
+                    new Amenity { Id = 1, Name = "Wi-Fi" },
+                    new Amenity { Id = 2, Name = "Meal" },
+                    new Amenity { Id = 3, Name = "Seat screens" },
+                    new Amenity { Id = 4, Name = "USB charging" });
+            });
+
+            modelBuilder.Entity<FlightSeat>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+
+                entity.Property(s => s.SeatNumber)
+                    .IsRequired()
+                    .HasMaxLength(5);
+
+                entity.HasIndex(s => new { s.FlightId, s.SeatNumber })
+                    .IsUnique();
+
+                entity.HasOne(s => s.Flight)
+                    .WithMany(f => f.Seats)
+                    .HasForeignKey(s => s.FlightId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(s => s.Version)
+                    .IsConcurrencyToken();
             });
 
             modelBuilder.Entity<Flight>(entity =>

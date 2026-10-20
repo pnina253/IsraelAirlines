@@ -36,5 +36,7 @@ namespace IsraelAirlines.core.Entities
 
 
         public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+
+        public ICollection<FlightSeat> Seats { get; set; } = new List<FlightSeat>();
     }
 }

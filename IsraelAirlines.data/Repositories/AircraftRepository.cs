@@ -1,12 +1,9 @@
 ﻿using IsraelAirlines.core.Entities;
 using IsraelAirlines.core.Exceptions;
 using IsraelAirlines.core.Interfaces.Repository;
-using IsraelAirlines.data.Contex;
+using IsraelAirlines.data.Context;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace IsraelAirlines.data.Repositories
 {
@@ -24,6 +21,17 @@ namespace IsraelAirlines.data.Repositories
             CancellationToken cancellationToken = default)
         {
             return await _context.Aircrafts
+                .AsNoTracking()
+                .Include(a => a.Amenities)
+                .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+        }
+
+        public async Task<Aircraft?> GetForUpdateAsync(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            return await _context.Aircrafts
+                .Include(a => a.Amenities)
                 .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
         }
 
@@ -32,7 +40,27 @@ namespace IsraelAirlines.data.Repositories
         {
             return await _context.Aircrafts
                 .AsNoTracking()
+                .Include(a => a.Amenities)
+                .OrderBy(a => a.Id)
                 .ToListAsync(cancellationToken);
+        }
+
+        // Tracked on purpose: a new flight references the returned aircraft.
+        public async Task<Aircraft?> GetByRegistrationNumberAsync(
+            string registrationNumber,
+            CancellationToken cancellationToken = default)
+        {
+            return await _context.Aircrafts
+                .Include(a => a.Amenities)
+                .FirstOrDefaultAsync(a => a.RegistrationNumber == registrationNumber, cancellationToken);
+        }
+
+        public async Task<bool> HasFlightsAsync(
+            int aircraftId,
+            CancellationToken cancellationToken)
+        {
+            return await _context.Flights
+                .AnyAsync(f => f.AircraftId == aircraftId, cancellationToken);
         }
 
         public async Task AddAsync(
@@ -58,9 +86,9 @@ namespace IsraelAirlines.data.Repositories
             }
         }
 
-        public  async Task<Aircraft?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default)
+        public void Remove(Aircraft aircraft)
         {
-            return await _context.Aircrafts.FirstOrDefaultAsync(r=>r.RegistrationNumber == registrationNumber, cancellationToken);
+            _context.Aircrafts.Remove(aircraft);
         }
     }
 }
