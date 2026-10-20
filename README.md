@@ -78,7 +78,7 @@ npm run dev
 
 | משתנה | ערך |
 |---|---|
-| `ConnectionStrings__DefaultConnection` | ‏`Host=...;Port=5432;Database=...;Username=...;Password=...` (פורמט key=value, לא URL של `postgres://`) |
+| `ConnectionStrings__DefaultConnection` | ה-Internal Database URL של Render (`postgresql://...`) או `Host=...;Port=5432;Database=...;Username=...;Password=...` |
 | `JwtSettings__Key` | מחרוזת אקראית של 32 תווים לפחות |
 | `Seed__AdminPassword` | סיסמת ה-Admin שנוצר בעלייה הראשונה, כשאין משתמשים |
 
