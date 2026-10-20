@@ -1,0 +1,49 @@
+/* Approved palette: primary #0B3D91, secondary #4FB3E8, accent #F5A524. Everything else derives from them. */
+:root {
+  --color-primary: #0b3d91;
+  --color-primary-hover: #082e6e;
+  --color-primary-soft: #e7eef9;
+  --color-primary-ink: #ffffff;
+
+  --color-secondary: #4fb3e8;
+  --color-secondary-soft: #e6f4fc;
+  --color-secondary-strong: #17699a; /* readable on white */
+
+  --color-accent: #f5a524;
+  --color-accent-hover: #e0931a;
+  --color-accent-soft: #fef3dc;
+  --color-accent-ink: #0a1f44; /* dark text on accent, not white */
+
+  --color-bg: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafd;
+  --color-border: #dce3ee;
+  --color-border-strong: #b9c5d6;
+  --color-text: #0f1b2d;
+  --color-text-muted: #5a6b85;
+  --color-disabled-bg: #e9edf3;
+  --color-disabled-text: #8a97ab;
+
+  --color-success: #1e7f52;
+  --color-success-soft: #e5f5ec;
+  --color-danger: #c62f3b;
+  --color-danger-soft: #fce9ea;
+  --color-warning: #8a5a00;
+  --color-warning-soft: #fff4d6;
+
+  --seat-available: #ffffff;
+  --seat-business: #e7eef9;
+  --seat-taken: #c9d1dd;
+  --seat-selected: var(--color-accent);
+
+  --focus-ring: 0 0 0 3px rgba(79, 179, 232, 0.55);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(15, 27, 45, 0.06);
+  --shadow: 0 4px 16px rgba(11, 61, 145, 0.08);
+  --shadow-lg: 0 12px 32px rgba(11, 61, 145, 0.14);
+
+  --font: 'Heebo', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+}

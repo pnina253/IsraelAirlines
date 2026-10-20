@@ -1,0 +1,666 @@
+/* Calendar, timeline, map and admin screens. */
+
+/* ---------- page head & view switcher ---------- */
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.page-head .page-title {
+  margin-bottom: 0;
+}
+
+.view-switcher {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.view-switcher__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.view-switcher__item:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.view-switcher__item.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius);
+  background: var(--color-disabled-bg);
+}
+
+.segmented button {
+  min-height: 32px;
+  padding: 2px 14px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- route filter & toolbar ---------- */
+
+.route-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.route-filter .field {
+  flex: 1 1 160px;
+}
+
+.route-filter__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-block: 18px 12px;
+}
+
+.cal-toolbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-toolbar__title {
+  min-width: 170px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  text-align: center;
+}
+
+.cal-toolbar__count {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.cal-toolbar .spinner--inline {
+  padding: 0;
+}
+
+/* ---------- calendar ---------- */
+
+.calendar {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.calendar__weekdays,
+.calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar__weekday {
+  padding: 8px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.calendar__day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 118px;
+  padding: 6px;
+  border-inline-start: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
+}
+
+.calendar__day:nth-child(7n + 1) {
+  border-inline-start: 0;
+}
+
+.calendar--week .calendar__day {
+  min-height: 320px;
+}
+
+.calendar__day.is-outside {
+  background: var(--color-surface-muted);
+}
+
+.calendar__day.is-outside .calendar__date {
+  color: var(--color-disabled-text);
+}
+
+.calendar__date {
+  align-self: flex-start;
+  min-width: 26px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.calendar__day.is-today .calendar__date {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.calendar__flights {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cal-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  padding: 3px 6px;
+  border-inline-start: 3px solid var(--color-secondary);
+  border-radius: 4px;
+  background: var(--color-secondary-soft);
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.cal-chip:hover {
+  background: #d3ecfa;
+}
+
+.cal-chip__time {
+  font-weight: 700;
+}
+
+.cal-chip__route {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-chip__more {
+  flex-basis: 100%;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+
+.calendar__more {
+  font-size: 0.78rem;
+  text-align: start;
+}
+
+/* ---------- timeline ---------- */
+
+.timeline-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.timeline {
+  min-width: 860px;
+  padding: 12px 28px 16px;
+}
+
+.timeline__axis {
+  position: relative;
+  height: 28px;
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.timeline__tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.timeline__lanes {
+  position: relative;
+  min-height: 64px;
+}
+
+.timeline__gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-inline-start: 1px dashed var(--color-border);
+}
+
+.timeline__gridline.is-midnight {
+  border-inline-start: 2px solid var(--color-border-strong);
+}
+
+.timeline__now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  border-inline-start: 2px solid var(--color-danger);
+}
+
+.timeline__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline__item {
+  position: absolute;
+  z-index: 1;
+  height: 44px;
+}
+
+.timeline__bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding: 2px 8px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: inset 0 -3px 0 var(--color-accent);
+}
+
+.timeline__bar:hover {
+  background: var(--color-primary-hover);
+}
+
+.timeline__bar-number {
+  font-weight: 800;
+}
+
+.timeline__bar-route,
+.timeline__bar-time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.9;
+}
+
+/* ---------- map ---------- */
+
+.map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.map-frame {
+  position: relative;
+  overflow: hidden;
+  min-height: 560px;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+  background: #e8eef5;
+}
+
+.map-frame__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.leaflet-tooltip.city-label {
+  display: grid;
+  justify-items: center;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.3;
+  box-shadow: var(--shadow);
+}
+
+.leaflet-tooltip.city-label.is-selected {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.city-label__price {
+  color: var(--color-secondary-strong);
+  font-size: 0.72rem;
+}
+
+.city-label.is-selected .city-label__price {
+  color: var(--color-accent-ink);
+}
+
+.map-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  max-height: 560px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.map-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-panel__intro {
+  display: grid;
+  gap: 10px;
+}
+
+.map-panel__intro > p,
+.map-panel__note {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.map-flights,
+.map-destinations {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-flight {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas: 'main price go' 'when price go';
+  align-items: center;
+  gap: 2px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.map-flight:hover {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-soft);
+}
+
+.map-flight__main {
+  grid-area: main;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.map-flight__when {
+  grid-area: when;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.map-flight__price {
+  grid-area: price;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.map-flight__go {
+  grid-area: go;
+  color: var(--color-secondary-strong);
+}
+
+.map-destination {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-destination span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.map-destination:hover {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-soft);
+}
+
+/* ---------- admin ---------- */
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.form-card {
+  padding: 22px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.admin-aside {
+  position: sticky;
+  top: 84px;
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.aircraft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.aircraft-card {
+  padding: 18px;
+}
+
+.aircraft {
+  display: grid;
+  gap: 14px;
+}
+
+.aircraft__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aircraft__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.aircraft__model {
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.aircraft__reg {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.aircraft__head .status-badge {
+  margin-inline-start: auto;
+}
+
+.status-badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-badge--on {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.status-badge--off {
+  background: var(--color-disabled-bg);
+  color: var(--color-text-muted);
+}
+
+.aircraft__facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+
+.aircraft__facts dt {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.aircraft__facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .map-layout,
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-aside {
+    position: static;
+  }
+
+  .map-panel {
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar--month .calendar__day {
+    min-height: 74px;
+    padding: 3px;
+  }
+
+  .calendar--month .cal-chip__route {
+    display: none;
+  }
+
+  .calendar--month .cal-chip {
+    padding: 2px 3px;
+    font-size: 0.68rem;
+  }
+
+  .calendar--week .calendar__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar--week .calendar__weekdays {
+    display: none;
+  }
+
+  .calendar--week .calendar__day {
+    min-height: 0;
+    border-inline-start: 0;
+  }
+
+  .map,
+  .map-frame {
+    min-height: 380px;
+  }
+
+  .cal-toolbar__title {
+    min-width: 0;
+    font-size: 1.05rem;
+  }
+}
