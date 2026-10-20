@@ -1,6 +1,9 @@
 // Single place for talking to the IsraelAirlines API: base URL, JSON, Bearer token and error parsing.
 
-const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:5154').replace(/\/$/, '');
+// In production the API serves the client, so an empty base URL means "same origin".
+const BASE_URL = (
+  import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:5154' : '')
+).replace(/\/$/, '');
 
 let authToken = null;
 let unauthorizedHandler = null;
@@ -36,7 +39,7 @@ function parseBody(text) {
 }
 
 export async function request(path, { method = 'GET', body, query, signal } = {}) {
-  const url = new URL(BASE_URL + path);
+  const url = new URL(BASE_URL + path, window.location.origin);
 
   if (query) {
     for (const [key, value] of Object.entries(query)) {

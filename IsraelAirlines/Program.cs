@@ -234,6 +234,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// The React client is built into wwwroot by the Dockerfile, so one Render service serves both.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseCors("Client");
 
 // 4. Authentication (who are you) before authorization (what may you do).
@@ -241,5 +245,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Unknown API routes stay a JSON 404; any other path is a client route and gets index.html.
+app.Map("/api/{**path}", context => ProblemDetailsWriter.WriteAsync(
+    context, StatusCodes.Status404NotFound, "The requested API endpoint does not exist."));
+app.MapFallbackToFile("index.html");
 
 app.Run();

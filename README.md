@@ -70,6 +70,18 @@ npm run dev
 
 הלקוח עולה בכתובת `http://localhost:5173` ומדבר עם השרת בכתובת `http://localhost:5154`.
 
+## פריסה ל-Render
+
+שירות Web אחד מסוג Docker (מה-`Dockerfile` בשורש) מגיש גם את ה-API וגם את הלקוח. ה-Dockerfile בונה את הלקוח ומעתיק אותו ל-`wwwroot`, והלקוח פונה ל-API באותו origin, ולכן לא צריך הגדרות CORS. כל נתיב שאינו `/api/...` מחזיר את `index.html`.
+
+משתני סביבה בשירות:
+
+| משתנה | ערך |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | ‏`Host=...;Port=5432;Database=...;Username=...;Password=...` (פורמט key=value, לא URL של `postgres://`) |
+| `JwtSettings__Key` | מחרוזת אקראית של 32 תווים לפחות |
+| `Seed__AdminPassword` | סיסמת ה-Admin שנוצר בעלייה הראשונה, כשאין משתמשים |
+
 ## משתמשי דמו (סביבת Development)
 
 | Role | אימייל | סיסמה |
